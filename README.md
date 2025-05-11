@@ -45,7 +45,8 @@ Este script Python cria um chatbot interativo chamado GAGA (Guia de Apoio Gestac
 2.  **Interaja com o GAGA:** Faça suas perguntas sobre saúde emocional durante a gravidez no terminal.
 
 3.  **Comandos:**
-    * `sair`, `exit` ou `quit`: Encerra a conversa.
+    * 'sair', 'exit' ou 'quit': Encerra a conversa.
+    * 'limpar', 'clear', 'reset': Limpa o histórico da conversa.
 
 ## Autor
 
