@@ -20,8 +20,8 @@ Este script Python cria um chatbot interativo chamado GAGA (Guia de Apoio Gestac
 
 1.  **Clone o repositório (opcional):**
     ```bash
-    git clone [https://link-para-seu-repositorio](https://link-para-seu-repositorio)
-    cd [nome-do-seu-repositorio]
+    git clone https://github.com/PaulaLoeblein/GAGA
+    cd GAGA
     ```
 
 2.  **Crie um arquivo `.env` (opcional):**
@@ -45,8 +45,8 @@ Este script Python cria um chatbot interativo chamado GAGA (Guia de Apoio Gestac
 2.  **Interaja com o GAGA:** Faça suas perguntas sobre saúde emocional durante a gravidez no terminal.
 
 3.  **Comandos:**
-    * 'sair', 'exit' ou 'quit': Encerra a conversa.
-    * 'limpar', 'clear', 'reset': Limpa o histórico da conversa.
+    * `sair`, `exit` ou `quit`: Encerra a conversa.
+    * `limpar', `clear`, `reset`: Limpa o histórico da conversa.
 
 ## Autor
 
