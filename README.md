@@ -46,12 +46,12 @@ Este script Python cria um chatbot interativo chamado GAGA (Guia de Apoio Gestac
 
 3.  **Comandos:**
     * `sair`, `exit` ou `quit`: Encerra a conversa.
-    * `limpar', `clear`, `reset`: Limpa o histórico da conversa.
+    * `limpar`, `clear` ou `reset`: Limpa o histórico da conversa.
 
 ## Autor
 
-Paula Loeblein
-Maio, 2025
+Paula Loeblein,
+Maio de 2025
 
 ## Observações
 
