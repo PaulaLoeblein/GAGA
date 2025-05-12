@@ -12,7 +12,9 @@ import os
 from huggingface_hub import InferenceClient
 from dotenv import load_dotenv
 import traceback
-import time  # Importa o módulo time para usar time.sleep()
+import time
+import PyPDF2
+import glob
 
 # Carrega a API key do arquivo .env
 load_dotenv()
@@ -20,16 +22,36 @@ API_KEY = os.getenv("HF_TOKEN")
 
 # Define o modelo Mistral para ser usado
 MODEL = "mistralai/Mistral-7B-Instruct-v0.3"
-
 client = InferenceClient(model=MODEL, token=API_KEY)
 
+
+def carregar_conteudo_de_arquivo(caminho):
+    """Lê conteúdo de um arquivo .txt ou .pdf e retorna como string."""
+    
+    # Se o arquivo for .txt, abre com codificação UTF-8 e retorna o conteúdo como texto
+    if caminho.endswith(".txt"):
+        with open(caminho, "r", encoding="utf-8") as f:
+            return f.read()
+    # Se o arquivo for .pdf, usa PyPDF2 para ler e extrair o texto de cada página
+    elif caminho.endswith(".pdf"):
+        texto = ""
+        with open(caminho, "rb") as f:
+            reader = PyPDF2.PdfReader(f)
+            for page in reader.pages:
+                texto += page.extract_text() + "\n"
+        return texto
+    # Caso o arquivo não seja .txt nem .pdf, levanta um erro
+    else:
+        raise ValueError("Formato de arquivo não suportado. Use .txt ou .pdf")
+
+
 # Histórico do chat (adaptado para instruções do Mistral)
+# Define as diretrizes do chat, o que pode ou não fazer e como deve agir de acordo com sua função
 history = [
     {
         "role": "system",
         "content": """
      Você é um assistente virtual chamado GAGA, abreviação para Guia de Apoio Gestacional Atencioso; é gentil, empático e altamente especializado em fornecer informações e apoio emocional PARA GESTANTES DURANTE A GRAVIDEZ.
-     EM HIPÓTESE ALGUMA responda coisas fora do seu escopo. VOCÊ JAMAIS deve responder perguntas sobre temas que não estejam relacionados a saúde emocional ou mental ou com gravidez.
      Não responda perguntas que não tenham a ver com saúde emocional ou mental ou com gravidez.
      Responda APENAS E DIRETAMENTE a perguntas que sejam *estritamente* relacionadas à saúde emocional, bem-estar psicológico e aspectos emocionais da experiência da gravidez. Seja **objetivo e conciso**, fornecendo informações essenciais de forma clara e direta, sem se prolongar em detalhes excessivos inicialmente.
      Se a pergunta NÃO FOR sobre saúde emocional, bem-estar psicológico ou aspectos emocionais da gravidez, você DEVE responder de forma educada e concisa que NÃO PODE ajudar com esse tópico específico. Mencione brevemente sua área de especialização e sugira que a usuária procure fontes de informações especializadas para o tópico da pergunta. Não dê continuidade à resposta.
@@ -75,36 +97,51 @@ history = [
     }
 ]
 
+# Carregar conteúdo extra de um arquivo e adicionar ao prompt do sistema
+PATH_EXTRA_FILES = "./documents/document.pdf"  
 
+arquivos = glob.glob(PATH_EXTRA_FILES)
+conteudo_total = ""
+
+if os.path.exists(PATH_EXTRA_FILES):
+    try:
+        conteudo_extra = carregar_conteudo_de_arquivo(PATH_EXTRA_FILES)
+        history[0]["content"] += "\n\nInformações complementares:\n" + conteudo_extra
+    except Exception as e:
+        print(f"Erro ao carregar conteúdo adicional: {e}")
+
+# Função que envia a pergunta do usuário para o modelo de linguagem e retorna a resposta
 def responder(pergunta):
+    # Adiciona a pergunta do usuário ao histórico de mensagens
     history.append({"role": "user", "content": pergunta})
     try:
-        print("Pensando...", end="", flush=True)  # Indica que o bot está processando
+        # Exibe "Pensando..." com animação de três pontos
+        print("Pensando...", end="", flush=True)
         for _ in range(3):
-            time.sleep(0.5)  # Simula o tempo de processamento com pontos
+            time.sleep(0.5)
             print(".", end="", flush=True)
-        print("\r" + " " * 15 + "\r", end="",
-              flush=True)  # Apaga a linha do "Pensando..."
-
+        print("\r" + " " * 15 + "\r", end="", flush=True)
+        
+        # Faz a requisição ao modelo para gerar uma resposta baseada no histórico
         resposta = client.chat.completions.create(
             model=MODEL,
             messages=history,
             max_tokens=800
         )
+        # Extrai o conteúdo da resposta gerada
         conteudo = resposta.choices[0].message.content
+        # Adiciona a resposta ao histórico como se fosse do assistente
         history.append({"role": "assistant", "content": conteudo})
         return conteudo
     except Exception as e:
         return f"Ocorreu um erro: {e}"
 
-
+# Função para limpar o terminal, compatível com Windows e Unix
 def limpar_tela():
-    """Limpa a tela do terminal"""
     os.system('cls' if os.name == 'nt' else 'clear')
 
-
+# Função que exibe o cabeçalho inicial do programa no terminal
 def exibir_header():
-    """Exibe o cabeçalho do GAGA"""
     print("=" * 80)
     print(" " * 25 + "GAGA - Guia de Apoio Gestacional Atencioso")
     print("=" * 80)
@@ -113,15 +150,14 @@ def exibir_header():
     print("Digite 'limpar' para limpar o histórico de conversas.")
     print("-" * 80)
 
-
+# Função para imprimir texto como se estivesse sendo digitado, com delay entre os caracteres
 def imprimir_texto_progressivo(texto, delay=0.01):
-    """Imprime texto com efeito de digitação progressiva"""
     for char in texto:
         print(char, end='', flush=True)
         time.sleep(delay)
-    print()  # Nova linha no final
+    print()
 
-
+# Função principal que executa o loop de conversa com o usuário
 def chat():
     limpar_tela()
     exibir_header()
@@ -129,22 +165,26 @@ def chat():
     while True:
         pergunta = input("Você: ")
         if pergunta.lower() in ['sair', 'exit', 'quit']:
+            # Encerra o programa com uma mensagem de despedida
             imprimir_texto_progressivo("\nGAGA: Até mais! Espero ter ajudado. Cuide-se bem!")
             break
         elif pergunta.lower() in ['limpar', 'clear', 'reset']:
+            # Limpa a tela, exibe o cabeçalho e reinicia o histórico
             limpar_tela()
             exibir_header()
-            history[:] = [history[0]]  # Mantém apenas o prompt do sistema
+            history[:] = [history[0]]
             print("\nGAGA: Histórico de conversa limpo.")
-            continue  # Volta para o início do loop
+            continue
         try:
+            # Envia a pergunta ao modelo e imprime a resposta com efeito de digitação
             resposta = responder(pergunta)
             print("\nGAGA: ", end="")
             imprimir_texto_progressivo(resposta, 0.01)
         except Exception as e:
+            # Mostra erro completo no terminal caso algo dê errado
             print(f"\nOcorreu um erro: {e}")
-            traceback.print_exc()  # Para obter detalhes do erro
+            traceback.print_exc()
 
-
+# Ponto de entrada do script: inicia o chat se o arquivo for executado diretamente
 if __name__ == "__main__":
     chat()
